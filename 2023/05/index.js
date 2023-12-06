@@ -3,8 +3,11 @@ import {readFileSync} from 'fs';
 const file = readFileSync('./input.txt').toString().trim();
 
 const [seedsInfo, seedToSoilInfo, soilToFertilizerInfo, fertilizerToWaterInfo, waterToLightInfo, lightToTemperatureInfo, temperatureToHumidityInfo, humidityToLocationInfo] = file.split('\n\n');
-const seeds = seedsInfo.match(/(\d+)/g).map(s => parseInt(s, 10));
-// const seedRanges = Array.from(seedsInfo.matchAll(/((\d+) (\d+))/g), ([, , start, length]) => ({start, length}));
+// const seedRanges = seedsInfo.match(/(\d+)/g).map(s => ({start: parseInt(s, 10), length: 1}));
+const seedRanges = Array.from(seedsInfo.matchAll(/((\d+) (\d+))/g), ([, , start, length]) => ({
+    start: parseInt(start, 10),
+    length: parseInt(length, 10)
+}));
 
 const ranges = [
     strToRanges(seedToSoilInfo),
@@ -16,20 +19,12 @@ const ranges = [
     strToRanges(humidityToLocationInfo)
 ]
 
-
-// const res = seedRanges.reduce((resLocation, {start, length}) => {
-//     console.log(start, length);
-//     const minLocation = Array.from({length}, (_, i) => start + i)
-//         .reduce((accLocation, seed) => {
-//             const location = ranges.reduce((previous, ranges) => getMapping(previous, ranges), seed);
-//             return accLocation < location ? accLocation : location;
-//         }, undefined);
-//     return resLocation < minLocation ? resLocation : minLocation;
-// }, undefined)
-
-const res = seeds.reduce((minLocation, seed) => {
-    const location = ranges.reduce((previous, ranges) => getMapping(previous, ranges), seed);
-    return minLocation < location ? minLocation : location;
+const res = seedRanges.reduce((minLocation, {start, length}) => {
+    for (const seed of seedRangeToGenerator(start, length)()) {
+        const location = ranges.reduce((previous, ranges) => getMapping(previous, ranges), seed);
+        minLocation = minLocation < location ? minLocation : location;
+    }
+    return minLocation;
 }, undefined);
 
 console.log(res);
@@ -54,5 +49,13 @@ function getMapping(val, ranges) {
         i++;
     }
     return mapping;
+}
+
+function seedRangeToGenerator(start, length) {
+    return function* () {
+        for (let i = 0; i < length; i++) {
+            yield (parseInt(start) + i);
+        }
+    }
 }
 
